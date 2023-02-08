@@ -1,5 +1,19 @@
 
 
+import sys
+import warnings
+import unified_planning as up
+import unified_planning.plans
+import unified_planning.engines
+import unified_planning.engines.mixins
+from unified_planning.model import ProblemKind
+from unified_planning.engines import PlanGenerationResultStatus, ValidationResult, ValidationResultStatus, Credits
+from up_pps.converter import Converter
+from up_pps.core.cp_solver import CpModel
+from up_pps.manager.instance_manager import InstanceManager
+from typing import IO, Callable, Optional, Dict, List, Tuple, Union, Set, cast
+
+
 class EngineImplementation(
         up.engines.Engine,
         up.engines.mixins.OneshotPlannerMixin
@@ -34,11 +48,11 @@ class EngineImplementation(
         supported_kind = ProblemKind()
         supported_kind.set_problem_class('SCHEDULING') # type: ignore
         #### COMPLETE
-        return
+        return supported_kind
 
     @staticmethod
     def supports(problem_kind: 'up.model.ProblemKind') -> bool:
-        return problem_kind <= EngineImpl.supported_kind()
+        return problem_kind <= EngineImplementation.supported_kind()
 
 
     def _solve(self, problem: 'up.model.AbstractProblem',
@@ -51,12 +65,13 @@ class EngineImplementation(
         if output_stream is not None:
             warnings.warn('PPS does not support output stream.', UserWarning)
         scheduling_pbm = self._convert_problem(problem)
-        instance_manager = scheduling_pbm.build_instance_manager()
+        instance_manager = InstanceManager()
+        instance_manager.build_instance_manager(scheduling_pbm)
         cp_model_opt = CpModel()
         cp_model_opt.build_model(instance_manager)
         cp_model_opt.run_model()
-        plan = cp_model_opt.build_plan
-        up_plan = self._to_up_plan(problem,plan)
+        up_plan = cp_model_opt.build_plan()
+        #up_plan = self._to_up_plan(problem,plan)
 
         return up_plan
 
@@ -69,12 +84,12 @@ class EngineImplementation(
 
         return scheduling_problem
 
-    def _to_up_plan(self, problem: 'up.model.Problem',
-                    plan: Optional[pps_plan]):
-        if ttplan is None:
-            return None
-        converter = Converter(problem)
-        up_plan = converter.build_up_plan(pps_plan)
-
-        return up_plan #up.plans.SequentialPlan([a[1] for a in actions], problem.env)
+    # def _to_up_plan(self, problem: 'up.model.Problem',
+    #                 plan: Optional[pps_plan]):
+    #     if ttplan is None:
+    #         return None
+    #     converter = Converter(problem)
+    #     up_plan = converter.build_up_plan(pps_plan)
+    #
+    #     return up_plan #up.plans.SequentialPlan([a[1] for a in actions], problem.env)
 

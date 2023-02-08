@@ -1,7 +1,7 @@
 from typing import List
 from typing import Any
 from dataclasses import dataclass, field
-from scheduling.dataenv.resource_availability import ResourceAvailability
+from up_pps.dataenv.resource_availability import ResourceAvailability
 
 
 @dataclass

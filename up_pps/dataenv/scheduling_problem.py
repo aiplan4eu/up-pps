@@ -1,8 +1,8 @@
 from typing import Any
 from dataclasses import dataclass, field
-from scheduling import *
-from scheduling.manager.instance_manager import InstanceManager
-from scheduling.core.cp_solver3 import CpModel
+from up_pps import *
+from up_pps.manager.instance_manager import InstanceManager
+from up_pps.core.cp_solver import CpModel
 
 
 @dataclass
@@ -121,8 +121,4 @@ class Scheduling_problem:
             print("Parameter:\n", end='\t')
             print(*self.parameterList, sep='\n\t')
             print()
-
-    def build_instance_manager(self):
-        instance_manager = InstanceManager()
-        instance_manager.build_instance_manager(self)
 
