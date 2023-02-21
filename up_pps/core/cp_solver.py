@@ -303,9 +303,7 @@ class CpModel:
 
         # solver
         solver = cp_model.CpSolver()
-        solver_time = 10
-        if 'TIME_LIMIT' in self.param_map.keys():
-            solver_time = int(self.param_map['TIME_LIMIT'])
+        solver_time = int(self.param_map['TIME_LIMIT'])
         solver.parameters.max_time_in_seconds = solver_time
         #solver.parameters.log_search_progress = True
         status = solver.Solve(model)  # 4 : optimal , 3 : infeasible, 2 : feasible
@@ -337,4 +335,4 @@ class CpModel:
             print('bho')
 
     def build_plan(self):
-        return plan
+        return
