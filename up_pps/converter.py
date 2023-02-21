@@ -20,25 +20,35 @@ class Converter:
 
         resource_list = []
         resource_index_by_name = {}
-        avalilability_list_by_resource_code = {}
         resource_availability_map = {}
         resource_set_list = []
         resource_set_by_resource = {}
         resource_set_resource_list = []
 
-        index = 0
+        index_res = 0
         for resource in self.resource_list:
-            if (resource.type.upper_bound > 1):
-                resource_set_sp_name = resource.name
-                for index in range(resource.type.upper_bound):
-                    resource_code = resource.name + str(index)
+            if(resource.type.is_int_type()):
+                if (resource.type.upper_bound > 1):
+                    resource_set_sp_name = resource.name
+                    for index in range(resource.type.upper_bound):
+                        resource_code = resource.name + str(index)
+                        resource_set_by_resource[resource_code] = resource_set_sp_name
+                        resource_set_resource = ResourceSetResource(resource_set_sp_name, resource_code)
+                        resource_set_resource_list.append(resource_set_resource)
+                        resource_sp = Resource(resource_code)
+                        resource_list.append(resource_sp)
+                        resource_index_by_name[resource_code] = index_res
+                        index_res += 1
+                else:
+                    resource_code = resource.name
+                    resource_set_sp_name = resource.name
                     resource_set_by_resource[resource_code] = resource_set_sp_name
                     resource_set_resource = ResourceSetResource(resource_set_sp_name, resource_code)
                     resource_set_resource_list.append(resource_set_resource)
                     resource_sp = Resource(resource_code)
                     resource_list.append(resource_sp)
-                    resource_index_by_name[resource_code] = index
-                    ++index
+                    resource_index_by_name[resource_code] = index_res
+                    index_res += 1
             else:
                 resource_code = resource.name
                 resource_set_sp_name = resource.name
@@ -47,9 +57,8 @@ class Converter:
                 resource_set_resource_list.append(resource_set_resource)
                 resource_sp = Resource(resource_code)
                 resource_list.append(resource_sp)
-                resource_index_by_name[resource_code] = index
-                ++index
-
+                resource_index_by_name[resource_code] = index_res
+                index_res += 1
 
             resource_set_list.append(resource_set_sp_name)
 
@@ -57,9 +66,9 @@ class Converter:
         availability_resource_code_time_list = []
         for key in self.availability_map:
             for value in self.availability_map[key]:
-                if value.kind.is_decrease():
+                if value.kind.name == "DECREASE":
                     availability_resource_code_time_list.append((str(value.fluent),'start',key.delay))
-                elif value.kind.is_increase():
+                elif value.kind.name == "INCREASE":
                     availability_resource_code_time_list.append((str(value.fluent),'end',key.delay))
         availability_list_by_resource_code = {}
         for resource in resource_list:
@@ -67,7 +76,7 @@ class Converter:
             if filtered_list:
                 filtered_list.sort(key = lambda x : x[2])
                 temp = []
-                for ii in range(len(filtered_list)-1):
+                for ii in range(0,len(filtered_list)-1,2):
                     if filtered_list[ii][1]!='start' and filtered_list[ii+1][1]!='end':
                         print('qualcosa non va')
                     else:
@@ -75,11 +84,12 @@ class Converter:
                         end = filtered_list[ii+1][2]
                         availability = ResourceAvailability(start, end, 'UNAVAILABLE')
                         temp.append(availability)
-                avalilability_list_by_resource_code[resource.resourceCode] = temp
+                availability_list_by_resource_code[resource.resourceCode] = temp
 
-        for resource_code in avalilability_list_by_resource_code.keys():
-            index = resource_index_by_name[resource_code]
-            resource_list[index].resourceAvailabilityList.extend(availability_list_by_resource_code[resource_code])
+        for resource_code in availability_list_by_resource_code.keys():
+            if resource_code in availability_list_by_resource_code.keys():
+                index = resource_index_by_name[resource_code]
+                resource_list[index].resourceAvailabilityList.extend(availability_list_by_resource_code[resource_code])
 
         activity_index_by_name = {}
         activity_activity_relation_list = []
@@ -102,16 +112,18 @@ class Converter:
                         and constraint.is_le():
                     activity_sp_release_time = constraint.args[0].int_constant_value()
 
-                if (str(constraint.args[0]) == 'start(' + activity_sp_name + ')' or str(
-                        constraint.args[0]) == 'end(' + activity_sp_name + ')') and \
-                        ('end' in str(constraint.args[1]) or 'start' in str(
-                            constraint.args[1])) and constraint.constraint.is_le():
-                    first_code = str(constraint.args[0]).split('(')[1].replace(')', '')
-                    second_code = str(constraint.args[1]).split('(')[1].replace(')', '')
-                    relation = str(constraint.args[0]).split('(')[0].upper() + '_' + str(constraint.args[1]).split('(')[
-                        0].upper()
-                    act_act_relation = ActivityActivityRelation(first_code, second_code, relation)
-                    activity_activity_relation_list.append(act_act_relation)
+                if ('end' in str(constraint.args[0]) or 'start' in str(constraint.args[0])) and ('end' in str(constraint.args[1]) or 'start' in str(constraint.args[1])) \
+                        and constraint.is_le():
+                    if activity_sp_name in str(constraint.args[0]) or activity_sp_name in str(constraint.args[1]):
+                        first_code = str(constraint.args[0]).split('(')[1].replace(')', '')
+                        second_code = str(constraint.args[1]).split('(')[1].replace(')', '')
+                        relation = str(constraint.args[0]).split('(')[0].upper() + '_' + \
+                                   str(constraint.args[1]).split('(')[
+                                       0].upper()
+                        act_act_relation = ActivityActivityRelation(first_code, second_code, relation)
+                        activity_activity_relation_list.append(act_act_relation)
+                    else:
+                        print("che fai?")
 
             activity_sp = Activity(activity_sp_name, activity_sp_processing_time, activity_sp_release_time,
                                    activity_sp_due_time)
@@ -125,7 +137,7 @@ class Converter:
                     for effect in self.activity_list[ii].effects[key]:
                         resource_set_code = str(effect.fluent)
                         for j in range(effect.value.int_constant_value()):
-                            sr_name = 'seize_release_' + activity_code + '#' + str(j)
+                            sr_name = 'seize_release_' + activity_code + '_' + resource_set_code + '#' + str(j)
                             seize_release = ResourceSetActivitySeizeRelease(sr_name, resource_set_code, activity_code,
                                                                             activity_code)
                             seize_release_list.append(seize_release)
@@ -148,7 +160,7 @@ class Converter:
 
     def build_up_plan(self):
         ####
-        return plan
+        return
 
 
 

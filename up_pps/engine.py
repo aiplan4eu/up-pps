@@ -60,18 +60,17 @@ class EngineImplementation(
                timeout: Optional[float] = None,
                output_stream: Optional[IO[str]] = None) -> 'up.engines.results.PlanGenerationResult':
         assert isinstance(problem, up.model.Problem)
-        if timeout is not None:
-            warnings.warn('PPS does not support timeout.', UserWarning)
         if output_stream is not None:
             warnings.warn('PPS does not support output stream.', UserWarning)
         scheduling_pbm = self._convert_problem(problem)
         instance_manager = InstanceManager()
         instance_manager.build_instance_manager(scheduling_pbm)
+        instance_manager.parameter_map["TIME_LIMIT"] = timeout if timeout is not None else 60
         cp_model_opt = CpModel()
         cp_model_opt.build_model(instance_manager)
         cp_model_opt.run_model()
-        up_plan = cp_model_opt.build_plan()
-        #up_plan = self._to_up_plan(problem,plan)
+        plan = cp_model_opt.build_plan()
+        up_plan = self._to_up_plan(problem,plan)
 
         return up_plan
 
