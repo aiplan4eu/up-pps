@@ -26,9 +26,10 @@ class Converter:
         resource_set_resource_list = []
 
         index_res = 0
+
         for resource in self.resource_list:
-            if(resource.type.is_int_type()):
-                if (resource.type.upper_bound > 1):
+            if resource.type.is_int_type():
+                if resource.type.upper_bound > 1:
                     resource_set_sp_name = resource.name
                     for index in range(resource.type.upper_bound):
                         resource_code = resource.name + str(index)
@@ -66,10 +67,11 @@ class Converter:
         availability_resource_code_time_list = []
         for key in self.availability_map:
             for value in self.availability_map[key]:
+                resource_code_av = str(value.fluent) if "rset_" not in str(value.fluent) else str(value.fluent).split("(")[1].replace(")","")
                 if value.kind.name == "DECREASE":
-                    availability_resource_code_time_list.append((str(value.fluent),'start',key.delay))
+                    availability_resource_code_time_list.append((resource_code_av,'start',key.delay))
                 elif value.kind.name == "INCREASE":
-                    availability_resource_code_time_list.append((str(value.fluent),'end',key.delay))
+                    availability_resource_code_time_list.append((resource_code_av,'end',key.delay))
         availability_list_by_resource_code = {}
         for resource in resource_list:
             filtered_list= [x for x in availability_resource_code_time_list if x[0] in resource.resourceCode]
@@ -135,7 +137,7 @@ class Converter:
                 if key == self.activity_list[ii].start:
                     activity_code = str(key).split('(')[1].replace(')', '')
                     for effect in self.activity_list[ii].effects[key]:
-                        resource_set_code = str(effect.fluent)
+                        resource_set_code = str(effect.fluent).split("(")[0]
                         for j in range(effect.value.int_constant_value()):
                             sr_name = 'seize_release_' + activity_code + '_' + resource_set_code + '#' + str(j)
                             seize_release = ResourceSetActivitySeizeRelease(sr_name, resource_set_code, activity_code,

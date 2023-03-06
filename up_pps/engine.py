@@ -59,7 +59,7 @@ class EngineImplementation(
                heuristic: Optional[Callable[["up.model.state.ROState"], Optional[float]]] = None,
                timeout: Optional[float] = None,
                output_stream: Optional[IO[str]] = None) -> 'up.engines.results.PlanGenerationResult':
-        assert isinstance(problem, up.model.Problem)
+        assert isinstance(problem, up.model.scheduling.SchedulingProblem)
         if output_stream is not None:
             warnings.warn('PPS does not support output stream.', UserWarning)
         scheduling_pbm = self._convert_problem(problem)

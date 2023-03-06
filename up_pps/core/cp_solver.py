@@ -319,7 +319,7 @@ class CpModel:
             print(f'makespan {solver.Value(makespan)}')
             for activity in self.activity_list:
                 a = self.activity_index_by_activity_name.get(activity.activityCode)
-                for resourceSetName in activity.resourceSetList:
+                for resourceSetName in set(activity.resourceSetList):
                     for resource in self.resource_list_by_resource_set[resourceSetName]:
                         r = self.resource_index_by_resource_name.get(resource.resourceCode)
                         if self.activity_resource_compatibility[a][r]:
