@@ -6,6 +6,9 @@ import itertools
 
 from ortools.sat.python import cp_model
 
+from up_pps.core.output.cp_solution_output import CPSolutionOutput
+from up_pps.core.output.solution_output import SolutionOutput
+
 
 class CpModel:
 
@@ -95,7 +98,7 @@ class CpModel:
 
         self.setupMap = instance_manager.setup_time_map
 
-    def run_model(self):
+    def run_model(self) -> 'CPSolutionOutput':
 
         # variables
         model = cp_model.CpModel()
@@ -273,25 +276,19 @@ class CpModel:
                                               end_activity_to_resource_of_resource_set[(activity_j, r, resource_set_name)] +
                                               int(setup_for_resource[j][k])).OnlyEnforceIf(lit)
 
-                    # primo_nodo = np.zeros(len(arcs))
-                    # secondo_nodo = np.zeros(len(arcs))
-                    # link = np.zeros(len(arcs))
-                    #
-                    # for i, arc in enumerate(arcs):
-                    #     primo_nodo[i] = arc[0]
-                    #     secondo_nodo[i] = arc[1]
-                    #     link[i] = arc[2]
-
                     model.AddCircuit(arcs)
 
         # objective : min makespan, min tardiness
+        objective_name = None
 
         if self.param_map['OBJECTIVE'] == 'MIN_MAKESPAN':
+            objective_name= 'makespan'
             makespan = model.NewIntVar(0, self.T, 'makespan')
             model.AddMaxEquality(makespan, end_activity.values())
             model.Minimize(makespan)
 
         if self.param_map['OBJECTIVE'] == 'MIN_TARDINESS':
+            objective_name = 'tardiness'
             tardiness = []
             for t in range(self.n_activity):
                 tardiness[t] = model.NewIntVar(0, self.T, 'tardiness_activity%i' % t)
@@ -315,24 +312,53 @@ class CpModel:
                 str_status = 'OPTIMAL'
             elif status == 2:
                 str_status = 'FEASIBLE'
-            print(f'Status {str_status} time {time}, solution: ')
-            print(f'makespan {solver.Value(makespan)}')
-            for activity in self.activity_list:
-                a = self.activity_index_by_activity_name.get(activity.activityCode)
-                for resourceSetName in set(activity.resourceSetList):
-                    for resource in self.resource_list_by_resource_set[resourceSetName]:
-                        r = self.resource_index_by_resource_name.get(resource.resourceCode)
-                        if self.activity_resource_compatibility[a][r]:
-                            if solver.Value(assigned_activity_to_resource_of_resource_set[(a, r, resourceSetName)]):
-                                print(
-                                    f'activity {activity.activityCode} start {solver.Value(start_activity_to_resource_of_resource_set[a, r, resourceSetName])} end '
-                                    f'{solver.Value(end_activity_to_resource_of_resource_set[a, r, resourceSetName])}, resource {resource.resourceCode}, '
-                                    f'of resource set {resourceSetName}')
+            # print(f'Status {str_status} time {time}, solution: ')
+            # print(f'makespan {solver.Value(makespan)}')
+            # for activity in self.activity_list:
+            #     a = self.activity_index_by_activity_name.get(activity.activityCode)
+            #     for resourceSetName in set(activity.resourceSetList):
+            #         for resource in self.resource_list_by_resource_set[resourceSetName]:
+            #             r = self.resource_index_by_resource_name.get(resource.resourceCode)
+            #             if self.activity_resource_compatibility[a][r]:
+            #                 if solver.Value(assigned_activity_to_resource_of_resource_set[(a, r, resourceSetName)]):
+            #                     print(
+            #                         f'activity {activity.activityCode} start {solver.Value(start_activity_to_resource_of_resource_set[a, r, resourceSetName])} end '
+            #                         f'{solver.Value(end_activity_to_resource_of_resource_set[a, r, resourceSetName])}, resource {resource.resourceCode}, '
+            #                         f'of resource set {resourceSetName}')
 
         elif status == cp_model.INFEASIBLE:
-            print('Not feasible solution found')
-        else:
-            print('bho')
+            solution = CPSolutionOutput('INFEASIBLE', time, objective_name, 0)
+            return solution
 
-    def build_plan(self):
-        return
+        if objective_name == 'makespan':
+            objective_value = solver.Value(makespan)
+        elif objective_name == 'tardiness':
+            objective_name = solver.Value(tardiness)
+
+        solution = CPSolutionOutput(str_status, time, objective_name, objective_value)
+        solution_entity_list = []
+
+        for activity in self.activity_list:
+            a = self.activity_index_by_activity_name.get(activity.activityCode)
+            activity_name = activity.activityCode
+            activity_start = solver.Value(start_activity[a])
+            activity_end = solver.Value(end_activity[a])
+            solution_entity = SolutionOutput(activity_name, activity_start, activity_end)
+
+            resource_name_by_resource_set_name = {}
+
+            for resourceSetName in set(activity.resourceSetList):
+                for resource in self.resource_list_by_resource_set[resourceSetName]:
+                    r = self.resource_index_by_resource_name.get(resource.resourceCode)
+                    if self.activity_resource_compatibility[a][r]:
+                        if solver.Value(assigned_activity_to_resource_of_resource_set[(a, r, resourceSetName)]):
+                            if resourceSetName not in resource_name_by_resource_set_name:
+                                resource_name_by_resource_set_name[resourceSetName] = []
+                            resource_name_by_resource_set_name[resourceSetName].append(resource.resourceCode)
+
+            solution_entity.resource_name_by_resource_set_name = resource_name_by_resource_set_name
+            solution_entity_list.append(solution_entity)
+
+        solution.solution_output_list = solution_entity_list
+
+        return solution
