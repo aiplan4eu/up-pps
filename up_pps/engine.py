@@ -86,6 +86,8 @@ class EngineImplementation(
 
     def _convert_output_problem(self, solution: 'up_pps.core.output.CPOutputModel'):
 
-        up_plan = self.converter.build_up_plan(solution)
+        up_plan = None
+        if solution.status != "INFEASIBLE":
+            up_plan = self.converter.build_up_plan(solution)
 
         return up_plan
