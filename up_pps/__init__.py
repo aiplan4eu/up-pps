@@ -7,8 +7,12 @@ from up_pps.dataenv.resource_availability import ResourceAvailability
 from up_pps.dataenv.resource_set import ResourceSet
 from up_pps.dataenv.resource_set_activity_seize_release import ResourceSetActivitySeizeRelease
 from up_pps.dataenv.resource_set_resource import ResourceSetResource
-from up_pps.dataenv.setup import SetupTime
+from up_pps.dataenv.res_setup import SetupTime
 from up_pps.dataenv.scheduling_problem import Scheduling_problem
+
+
+VERSION = (1, 0, 0)
+__version__ = ".".join(str(x) for x in VERSION)
 
 __all__ = [
     "Resource",

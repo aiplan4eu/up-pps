@@ -156,47 +156,49 @@ class Converter:
             activity_sp_due_time = 2147483647  # max long value in C
             activity_sp_release_time = 0
 
-            for constraint in constraint_by_activity_map.get(activity_sp_name):
+            if constraint_by_activity_map.get(activity_sp_name):
+                for constraint in constraint_by_activity_map.get(activity_sp_name):
 
-                if str(constraint.args[0]) == 'end(' + activity_sp_name + ')' and constraint.args[1].is_int_constant() \
-                        and constraint.is_le():
-                    activity_sp_due_time = constraint.args[1].int_constant_value()
+                    if str(constraint.args[0]) == 'end(' + activity_sp_name + ')' and constraint.args[1].is_int_constant() \
+                            and constraint.is_le():
+                        activity_sp_due_time = constraint.args[1].int_constant_value()
 
-                elif constraint.args[0].is_int_constant() and str(
-                        constraint.args[1]) == 'start(' + activity_sp_name + ')' \
-                        and constraint.is_le():
-                    activity_sp_release_time = constraint.args[0].int_constant_value()
+                    elif constraint.args[0].is_int_constant() and str(
+                            constraint.args[1]) == 'start(' + activity_sp_name + ')' \
+                            and constraint.is_le():
+                        activity_sp_release_time = constraint.args[0].int_constant_value()
 
-                elif ('end' in str(constraint.args[0]) or 'start' in str(constraint.args[0])) and (
-                        'end' in str(constraint.args[1]) or 'start' in str(constraint.args[1])) \
-                        and (constraint.is_le() or constraint.is_lt()):
-                    first_code = str(constraint.args[0]).split('(')[1].replace(')', '')
-                    second_code = str(constraint.args[1]).split('(')[1].replace(')', '')
-                    relation = str(constraint.args[0]).split('(')[0].upper() + '_' + \
-                               str(constraint.args[1]).split('(')[
-                                   0].upper()
-                    act_act_relation = ActivityActivityRelation(first_code, second_code, relation)
-                    activity_activity_relation_list.append(act_act_relation)
+                    elif ('end' in str(constraint.args[0]) or 'start' in str(constraint.args[0])) and (
+                            'end' in str(constraint.args[1]) or 'start' in str(constraint.args[1])) \
+                            and (constraint.is_le() or constraint.is_lt()):
+                        first_code = str(constraint.args[0]).split('(')[1].replace(')', '')
+                        second_code = str(constraint.args[1]).split('(')[1].replace(')', '')
+                        relation = str(constraint.args[0]).split('(')[0].upper() + '_' + \
+                                   str(constraint.args[1]).split('(')[
+                                       0].upper()
+                        act_act_relation = ActivityActivityRelation(first_code, second_code, relation)
+                        activity_activity_relation_list.append(act_act_relation)
 
-                elif str(constraint).split('(')[0] in pbm_resource_map.keys() and pbm_resource_map.get(
-                        str(constraint).split('(')[0]).type.is_bool_type() \
-                        and pbm_resource_map.get(str(constraint).split('(')[0]).signature[0].name == \
-                        str(constraint).split(':')[1].replace(')', ''):
+                    elif str(constraint).split('(')[0] in pbm_resource_map.keys() and pbm_resource_map.get(
+                            str(constraint).split('(')[0]).type.is_bool_type() \
+                            and pbm_resource_map.get(str(constraint).split('(')[0]).signature[0].name == \
+                            str(constraint).split(':')[1].replace(')', ''):
 
-                    new_resource_set_name = str(constraint).split('(')[0]
-                    resource_set_list.append(new_resource_set_name)
+                        new_resource_set_name = str(constraint).split('(')[0]
+                        resource_set_list.append(new_resource_set_name)
 
-                    for obj in self.object_list:
-                        if obj.type == pbm_resource_map.get(str(constraint).split('(')[0]).signature[0].type:
-                            key_name = str(constraint).split('(')[0] + '(' + obj.name + ')'
-                            if initial_value_map.get(key_name):
-                                resource_to_add = resource_map.get(obj.name)
-                                # resource_set_by_resource[resource_to_add.resourceCode] = new_resource_set_name
-                                resource_set_resource = ResourceSetResource(new_resource_set_name,
-                                                                            resource_to_add.resourceCode)
-                                resource_set_resource_list.append(resource_set_resource)
-                                param_name = str(constraint).split('(')[1].replace(')', '')
-                                resource_set_for_param[param_name] = new_resource_set_name
+                        for obj in self.object_list:
+                            if obj.type == pbm_resource_map.get(str(constraint).split('(')[0]).signature[0].type:
+                                key_name = str(constraint).split('(')[0] + '(' + obj.name + ')'
+                                if initial_value_map.get(key_name):
+                                    resource_to_add = resource_map.get(obj.name)
+                                    # resource_set_by_resource[resource_to_add.resourceCode] = new_resource_set_name
+                                    resource_set_resource = ResourceSetResource(new_resource_set_name,
+                                                                                resource_to_add.resourceCode)
+                                    resource_set_resource_list.append(resource_set_resource)
+                                    param_name = str(constraint).split('(')[1].replace(')', '')
+                                    resource_set_for_param[param_name] = new_resource_set_name
+
 
             activity_sp = Activity(activity_sp_name, activity_sp_processing_time, activity_sp_release_time,
                                    activity_sp_due_time)
@@ -216,7 +218,7 @@ class Converter:
                                 self.original_resource_set_of_resource_set[str(effect.fluent).split("(")[0]] = \
                                 resource_set_for_param.get(param_name)
                             else:
-                                print("Undefined parameter " + param_name)
+                                resource_set_code =str(effect).split("(")[0]
                         else:
                             resource_set_code = str(effect.fluent)
                         for j in range(effect.value.int_constant_value()):
@@ -256,7 +258,11 @@ class Converter:
                     for res_set in list_resource_set:
                         if param_name in res_set:
                             resource_set_original = res_set.split('(')[0]
-                            new_resource_set = self.original_resource_set_of_resource_set[resource_set_original]
+                            new_resource_set = None
+                            if resource_set_original in self.original_resource_set_of_resource_set.keys():
+                                new_resource_set = self.original_resource_set_of_resource_set[resource_set_original]
+                            else:
+                                new_resource_set = resource_set_original
                             resource_name = sol.resource_name_by_resource_set_name[new_resource_set]
                             for res in resource_name:
                                 obj = self.object_map.get(res)
