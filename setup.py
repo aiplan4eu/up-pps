@@ -1,5 +1,4 @@
 from setuptools import setup  # type: ignore
-import up_pps
 
 long_description = '''
 # UP_PPS
@@ -9,7 +8,7 @@ to solve scheduling problems
 '''
 
 setup(name='up_pps',
-      version=up_pps.__version__,
+      version='1.0.2',
       description='up_pps',
       author='ACTOR',
       author_email='ahead@ahead-research.com',
