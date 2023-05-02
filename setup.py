@@ -8,7 +8,7 @@ to solve scheduling problems
 '''
 
 setup(name='up_pps',
-      version='1.0.2',
+      version='1.0.3',
       description='up_pps',
       author='ACTOR',
       author_email='ahead@ahead-research.com',
